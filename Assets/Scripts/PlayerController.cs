@@ -9,6 +9,8 @@ namespace Platformer
         public float movingSpeed;
         public float jumpForce;
         private float moveInput;
+        private float horizontalInput = 0f;
+        private bool jumpPressed = false;
 
         private bool facingRight = false;
         [HideInInspector]
@@ -35,28 +37,39 @@ namespace Platformer
 
         void Update()
         {
-            if (Input.GetButton("Horizontal")) 
+            // Kombinasi input dari keyboard dan UI
+            float keyboardInput = Input.GetAxis("Horizontal");
+            moveInput = Mathf.Abs(keyboardInput) > 0 ? keyboardInput : horizontalInput;
+
+            if (moveInput != 0f)
             {
-                moveInput = Input.GetAxis("Horizontal");
                 Vector3 direction = transform.right * moveInput;
                 transform.position = Vector3.MoveTowards(transform.position, transform.position + direction, movingSpeed * Time.deltaTime);
-                animator.SetInteger("playerState", 1); // Turn on run animation
+                animator.SetInteger("playerState", 1); // Run
             }
             else
             {
-                if (isGrounded) animator.SetInteger("playerState", 0); // Turn on idle animation
+                if (isGrounded) animator.SetInteger("playerState", 0); // Idle
             }
-            if(Input.GetKeyDown(KeyCode.Space) && isGrounded )
+
+            // Lompat via keyboard atau tombol UI
+            if ((Input.GetKeyDown(KeyCode.Space) || jumpPressed) && isGrounded)
             {
                 rigidbody.AddForce(transform.up * jumpForce, ForceMode2D.Impulse);
+                jumpPressed = false;
             }
-            if (!isGrounded)animator.SetInteger("playerState", 2); // Turn on jump animation
 
-            if(facingRight == false && moveInput > 0)
+            if (!isGrounded)
+            {
+                animator.SetInteger("playerState", 2); // Jump
+            }
+
+            // Balik arah karakter
+            if (!facingRight && moveInput > 0)
             {
                 Flip();
             }
-            else if(facingRight == true && moveInput < 0)
+            else if (facingRight && moveInput < 0)
             {
                 Flip();
             }
@@ -80,7 +93,7 @@ namespace Platformer
         {
             if (other.gameObject.tag == "Enemy")
             {
-                deathState = true; // Say to GameManager that player is dead
+                deathState = true;
             }
             else
             {
@@ -95,6 +108,25 @@ namespace Platformer
                 gameManager.coinsCounter += 1;
                 Destroy(other.gameObject);
             }
+        }
+
+        // ----------------------------
+        // FUNGSI TAMBAHAN UNTUK UI
+        // ----------------------------
+        public void MoveLeft(bool isPressed)
+        {
+            horizontalInput = isPressed ? -1f : 0f;
+        }
+
+        public void MoveRight(bool isPressed)
+        {
+            horizontalInput = isPressed ? 1f : 0f;
+        }
+
+        public void Jump()
+        {
+            if (isGrounded)
+                jumpPressed = true;
         }
     }
 }
